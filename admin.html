@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADMIN PRO SHOWROOM</title>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+background:linear-gradient(135deg,#0b0b0b,#000);
+color:white;
+}
+
+.container{
+max-width:500px;
+margin:auto;
+padding:15px;
+}
+
+h2{
+text-align:center;
+margin:10px 0;
+color:#25d366;
+}
+
+input{
+width:100%;
+padding:10px;
+margin:8px 0;
+border:none;
+border-radius:8px;
+background:#1a1a1a;
+color:white;
+}
+
+button{
+width:100%;
+padding:10px;
+margin:8px 0;
+border:none;
+border-radius:8px;
+background:linear-gradient(90deg,#25d366,#1fa855);
+font-weight:bold;
+cursor:pointer;
+}
+
+button:hover{
+transform:scale(1.02);
+}
+
+.card{
+background:rgba(255,255,255,0.05);
+backdrop-filter:blur(10px);
+border:1px solid rgba(255,255,255,0.08);
+padding:10px;
+margin:10px 0;
+border-radius:12px;
+}
+
+img{
+width:100%;
+height:150px;
+object-fit:cover;
+border-radius:10px;
+margin-bottom:8px;
+}
+
+.badge{
+display:inline-block;
+padding:5px 10px;
+border-radius:20px;
+font-size:12px;
+margin-bottom:5px;
+}
+
+.sold{background:red;color:white;}
+.available{background:#25d366;color:black;}
+
+.deleteBtn{
+background:#ff3b30;
+margin-top:5px;
+}
+
+.logout{
+background:#333;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>🔐 ADMIN DASHBOARD</h2>
+
+<!-- LOGIN -->
+<div id="loginBox">
+
+<input id="email" placeholder="Email">
+<input id="pass" type="password" placeholder="Password">
+<button onclick="login()">LOGIN</button>
+
+</div>
+
+<!-- PANEL -->
+<div id="panel" style="display:none">
+
+<h3>🚗 ADD CAR</h3>
+
+<input id="name" placeholder="Nama">
+<input id="price" placeholder="Harga">
+<input id="year" placeholder="Tahun">
+<input id="mileage" placeholder="Mileage">
+<input id="brand" placeholder="Brand">
+<input type="file" id="img">
+
+<button onclick="addCar()">UPLOAD CAR</button>
+
+<button class="logout" onclick="logout()">LOGOUT</button>
+
+<h3>📦 STOCK LIST</h3>
+<div id="list"></div>
+
+</div>
+
+</div>
+
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+
+<script src="firebase.js"></script>
+
+<script>
+
+const ADMIN="fariszain97@gmail.com";
+
+/* LOGIN */
+function login(){
+
+let email=document.getElementById("email").value;
+let pass=document.getElementById("pass").value;
+
+auth.signInWithEmailAndPassword(email,pass)
+.then(()=>{
+
+if(email===ADMIN){
+document.getElementById("loginBox").style.display="none";
+document.getElementById("panel").style.display="block";
+loadCars();
+}else{
+alert("NOT ADMIN");
+auth.signOut();
+}
+
+});
+
+}
+
+/* LOGOUT */
+function logout(){
+auth.signOut();
+location.reload();
+}
+
+/* ADD CAR */
+function addCar(){
+
+let file=document.getElementById("img").files[0];
+
+if(!file){
+alert("Sila pilih gambar");
+return;
+}
+
+let ref=storage.ref("cars/"+Date.now()+file.name);
+
+ref.put(file).then(()=>{
+
+ref.getDownloadURL().then(url=>{
+
+db.collection("cars").add({
+name:document.getElementById("name").value,
+price:document.getElementById("price").value,
+year:document.getElementById("year").value,
+mileage:document.getElementById("mileage").value,
+brand:document.getElementById("brand").value,
+image:url,
+created:Date.now(),
+status:"available"
+});
+
+alert("KERETA BERJAYA UPLOAD");
+
+});
+
+});
+
+}
+
+/* LOAD STOCK */
+function loadCars(){
+
+db.collection("cars").orderBy("created","desc").onSnapshot(s=>{
+
+let html="";
+
+s.forEach(doc=>{
+
+let c=doc.data();
+
+let badge = c.status==="sold"
+? `<div class="badge sold">SOLD</div>`
+: `<div class="badge available">AVAILABLE</div>`;
+
+html+=`
+<div class="card">
+
+<img src="${c.image}">
+${badge}
+
+<h3>${c.name}</h3>
+<p>RM ${c.price}</p>
+<p>${c.year}</p>
+<p>${c.mileage}</p>
+<p>${c.brand}</p>
+
+<button class="deleteBtn" onclick="deleteCar('${doc.id}')">DELETE</button>
+
+</div>
+`;
+
+});
+
+document.getElementById("list").innerHTML=html;
+
+});
+
+}
+
+/* DELETE */
+function deleteCar(id){
+if(confirm("Delete kereta ini?")){
+db.collection("cars").doc(id).delete();
+}
+}
+
+</script>
+
+</body>
+</html>
