@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FZZAIN RECOND CAR</title>
+
+<style>
+*{box-sizing:border-box;}
+
+body{
+margin:0;
+font-family:Arial;
+background:#0b0b0b;
+color:white;
+}
+
+.container{
+max-width:850px;
+margin:auto;
+padding:12px;
+}
+
+h2{
+text-align:center;
+font-size:24px;
+margin:10px 0 15px;
+}
+
+input{
+width:100%;
+padding:10px;
+margin:8px 0;
+border:none;
+border-radius:8px;
+font-size:14px;
+}
+
+h4{
+margin:10px 0 5px;
+font-size:14px;
+}
+
+.btn-group{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:6px;
+margin-bottom:10px;
+}
+
+.btn-group button{
+padding:9px;
+border:none;
+border-radius:6px;
+background:#333;
+color:white;
+cursor:pointer;
+font-size:12px;
+}
+
+.btn-group button:hover{
+background:#25d366;
+}
+
+.card{
+background:#1a1a1a;
+padding:12px;
+margin:10px 0;
+border-radius:12px;
+}
+
+.card img{
+width:100%;
+border-radius:10px;
+margin-bottom:10px;
+}
+
+.card h2{
+font-size:22px;
+color:#25d366;
+margin:4px 0;
+text-align:left;
+}
+
+.card h3{
+font-size:17px;
+margin:4px 0;
+}
+
+.card p{
+margin:4px 0;
+font-size:13px;
+color:#ddd;
+}
+
+button.action{
+width:100%;
+padding:11px;
+margin-top:10px;
+border:none;
+border-radius:8px;
+background:linear-gradient(90deg,#25d366,#1fa855);
+color:white;
+font-weight:bold;
+font-size:14px;
+cursor:pointer;
+}
+
+.badge{
+display:inline-block;
+padding:6px 10px;
+border-radius:20px;
+font-size:12px;
+font-weight:bold;
+margin-bottom:8px;
+}
+
+.available{background:#25d366;color:#000;}
+.sold{background:#ff3b30;color:#fff;}
+
+.admin-icon{
+position:fixed;
+top:10px;
+right:10px;
+z-index:999;
+}
+
+.admin-icon button{
+background:rgba(0,0,0,0.6);
+border:none;
+color:white;
+padding:8px 10px;
+border-radius:8px;
+font-size:16px;
+cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<!-- 🔐 ADMIN ICON -->
+<div class="admin-icon">
+<button onclick="goAdmin()">🔐</button>
+</div>
+
+<div class="container">
+
+<h2>🚗 FZZAIN RECOND CAR</h2>
+
+<input id="search" placeholder="🔍 Cari kereta..." onkeyup="renderCars()">
+
+<h4>🏷 Brand</h4>
+<div class="btn-group">
+<button onclick="setBrand('all')">ALL</button>
+<button onclick="setBrand('Mercedes')">Mercedes</button>
+<button onclick="setBrand('BMW')">BMW</button>
+<button onclick="setBrand('Toyota')">Toyota</button>
+<button onclick="setBrand('Honda')">Honda</button>
+<button onclick="setBrand('Nissan')">Nissan</button>
+<button onclick="setBrand('Mazda')">Mazda</button>
+<button onclick="setBrand('Porsche')">Porsche</button>
+</div>
+
+<h4>📅 Tahun</h4>
+<div class="btn-group">
+<button onclick="setYear('all')">ALL</button>
+<button onclick="setYear('2026')">2026</button>
+<button onclick="setYear('2025')">2025</button>
+<button onclick="setYear('2024')">2024</button>
+<button onclick="setYear('2023')">2023</button>
+<button onclick="setYear('2022')">2022</button>
+<button onclick="setYear('2021')">2021</button>
+<button onclick="setYear('2020')">2020</button>
+</div>
+
+<div id="list"></div>
+
+</div>
+
+<!-- 🔥 FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<script>
+// 🔥 CONFIG FIREBASE
+const firebaseConfig = {
+  apiKey: "AIzaSyCCWwtCJWfzt7Ro3goa9jH6sZpmJmx7UhI",
+  authDomain: "projectfzzaintp1.firebaseapp.com",
+  projectId: "projectfzzaintp1",
+  storageBucket: "projectfzzaintp1.firebasestorage.app",
+  messagingSenderId: "198808838468",
+  appId: "1:198808838468:web:abc123"
+};
+
+// INIT
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let phone="601136756741";
+let currentBrand="all";
+let currentYear="all";
+let allCars=[];
+
+function goAdmin(){
+window.location.href="admin.html";
+}
+
+function setBrand(b){
+currentBrand=b;
+renderCars();
+}
+
+function setYear(y){
+currentYear=y;
+renderCars();
+}
+
+// 🔥 LOAD DATA ONCE
+db.collection("cars").onSnapshot(snapshot=>{
+allCars=[];
+snapshot.forEach(doc=>{
+allCars.push(doc.data());
+});
+renderCars();
+});
+
+function renderCars(){
+
+let list=document.getElementById("list");
+let keyword=(document.getElementById("search").value||"").toLowerCase();
+
+list.innerHTML="";
+
+allCars.forEach(c=>{
+
+let brandMatch=(currentBrand==="all" || c.brand===currentBrand);
+let yearMatch=(currentYear==="all" || c.year===currentYear);
+let searchMatch=(c.name||"").toLowerCase().includes(keyword);
+
+if(brandMatch && yearMatch && searchMatch){
+
+let status=c.status || "available";
+
+let badge = status==="sold"
+? `<div class="badge sold">🔴 SOLD</div>`
+: `<div class="badge available">🟢 AVAILABLE</div>`;
+
+let button = status==="sold"
+? `<button class="action" style="background:#555" disabled>SOLD</button>`
+: `<button class="action" onclick="applyLoan('${c.name}','${c.price}')">📲 APPLY LOAN</button>`;
+
+list.innerHTML += `
+<div class="card">
+
+<img src="${c.image || ''}">
+
+${badge}
+
+<h2>RM ${c.price}</h2>
+<h3>${c.name}</h3>
+
+<p>📅 Tahun: ${c.year}</p>
+<p>📊 Mileage: ${c.mileage}</p>
+<p>🏷 Brand: ${c.brand}</p>
+
+${button}
+
+</div>
+`;
+}
+
+});
+
+}
+
+function applyLoan(model,price){
+
+let name=prompt("Nama anda:");
+if(!name)return;
+
+let salary=prompt("Gaji anda:");
+if(!salary)return;
+
+let msg=`
+🚗 LOAN REQUEST
+
+Model: ${model}
+Harga: RM${price}
+Nama: ${name}
+Gaji: ${salary}
+`;
+
+window.location="https://wa.me/"+phone+"?text="+encodeURIComponent(msg);
+
+}
+
+</script>
+
+</body>
+</html>
