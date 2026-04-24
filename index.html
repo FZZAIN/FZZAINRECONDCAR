@@ -1,0 +1,135 @@
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<script src="firebase.js"></script>
+
+<script>
+
+let phone="601136756741";
+let currentBrand="all";
+let currentYear="all";
+
+let allCars = [];
+
+// 🔐 admin
+function goAdmin(){
+window.location.href="admin.html";
+}
+
+function setBrand(b){
+currentBrand=b;
+renderCars();
+}
+
+function setYear(y){
+currentYear=y;
+renderCars();
+}
+
+// 🔥 LOAD DATA SAFELY
+function loadCars(){
+
+if(!db){
+console.error("Firebase belum connect (db undefined)");
+return;
+}
+
+db.collection("cars").onSnapshot(snapshot=>{
+
+allCars = [];
+
+snapshot.forEach(doc=>{
+allCars.push(doc.data());
+});
+
+renderCars();
+
+});
+
+}
+
+// 🔥 RENDER UI
+function renderCars(){
+
+let list=document.getElementById("list");
+if(!list) return;
+
+let keyword=(document.getElementById("search")?.value || "").toLowerCase();
+
+list.innerHTML="";
+
+allCars.forEach(c=>{
+
+let brandMatch=(currentBrand==="all" || c.brand===currentBrand);
+let yearMatch=(currentYear==="all" || c.year===currentYear);
+let searchMatch=(c.name||"").toLowerCase().includes(keyword);
+
+if(brandMatch && yearMatch && searchMatch){
+
+let status=c.status || "available";
+
+let badge = status==="sold"
+? `<div class="badge sold">🔴 SOLD</div>`
+: `<div class="badge available">🟢 AVAILABLE</div>`;
+
+let button = status==="sold"
+? `<button class="action" style="background:#555" disabled>KERETA SUDAH SOLD</button>`
+: `<button class="action" onclick="applyLoan('${c.name}','${c.price}')">📲 APPLY LOAN WHATSAPP</button>`;
+
+list.innerHTML += `
+<div class="card">
+
+<img src="${c.image || ''}">
+
+${badge}
+
+<h2>RM ${c.price}</h2>
+<h3>${c.name}</h3>
+
+<p>📅 Tahun: ${c.year}</p>
+<p>📊 Mileage: ${c.mileage}</p>
+<p>🏷 Brand: ${c.brand}</p>
+
+${button}
+
+</div>
+`;
+}
+
+});
+
+}
+
+// 🔍 search trigger
+document.addEventListener("keyup",function(){
+renderCars();
+});
+
+// 📲 whatsapp
+function applyLoan(model,price){
+
+let name=prompt("Nama anda:");
+if(!name)return;
+
+let salary=prompt("Gaji anda (RM):");
+if(!salary)return;
+
+let msg=`
+📝 APPLY LOAN REQUEST
+
+🚗 Model: ${model}
+💰 Harga: RM${price}
+
+👤 Nama: ${name}
+💼 Gaji: ${salary}
+`;
+
+window.location="https://wa.me/"+phone+"?text="+encodeURIComponent(msg);
+}
+
+// 🚀 START
+setTimeout(()=>{
+loadCars();
+},500);
+
+</script>
